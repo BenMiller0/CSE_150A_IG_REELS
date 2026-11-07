@@ -52,10 +52,44 @@ time, video length, virality score, and more.
 
 
 \subsection{Preprocessing}
-We found the data set was clean 
+We found the data set was clean and not missing anything. Some of the features we found where not relevant in helping us answer our quiestion
+such as reel\_id and creator\_id.
 
-\textit{[TODO: Describe missing-data handling, feature selection, discretization
-thresholds, and data splits. Explain why each processing step is needed.]}
+We choose features based on what we intuitively thought would contribute to reel virality. We also found some features are redundent such as likes, comments,
+and shares all capture the same thing as the singular feature of virality score. This allowed us to narrow down the features we needed to answer our question.
+
+The features we selected were: creator\_followers,
+hook\_strength\_score, hashtags\_count,
+trending\_audio, retention\_rate, impressions,
+and virality\_score.
+
+We then converted the selected features into discrete binary variables to simplify
+the Bayesian Network's state space. For each numeric feature, we assigned a value
+of 1 when its value was at or above the chosen threshold and 0 otherwise. We used
+the 99.5th percentile of virality\_score to define what makes a video viral. For the other numeric features, we used their respective
+dataset medians (the 50th percentile).
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Binary variable & Original feature & Threshold for a value of 1 \\
+\midrule
+bin\_viral & virality\_score & 99.5th percentile \\
+strong\_hook & hook\_strength\_score & Median ($\approx 0.499020$) \\
+many\_hashtags & hashtags\_count & Median (15) \\
+many\_impressions & impressions & Median (49,917,048.5) \\
+many\_followers & creator\_followers & Median (2,500,456) \\
+trending\_audio & trending\_audio & True \\
+high\_retention & retention\_rate & Median ($\approx 0.501637$) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The trending\_audio feature was already Boolean, so we cast it directly to an
+integer, mapping true to 1 and false to 0. These transformations provide a binary
+target and binary evidence variables for probabilistic inference. Because values
+equal to a threshold are included, ties can make the proportion of samples labeled
+1 exceed the nominal percentile fraction.
 
 \section{Modeling and Inference}
 
@@ -117,12 +151,11 @@ individual reflection on the project.]}
 individual reflection on the project.]}
 
 \paragraph{Benjamin Miller}
-\textit{[TODO: Write 1--2 sentences describing your contributions and a brief
-individual reflection on the project.]}
+    \textit{Wrote a lot of the project writeup and assisted with overall project ideas. }
 
 \subsection{Use of Generative AI}
-\textit{[TODO: Describe how generative AI was used in the project and how its
-outputs were checked.]}
+Gen AI was used to assist in the generation of Python and Latex code in order to translate
+our ideas into code. We manaully reviewed all code and outputs to verify it matches our intent.
 
 \section{References}
 \textit{[TODO: Cite all external papers, datasets, and tools used in the project.
