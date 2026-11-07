@@ -41,7 +41,3 @@
 *.pk
 *.synctex.gz.*
 _minted*/
-
-# Course reference PDFs.
-/project_resources/Project_Guidelines.pdf
-/project_resources/Proposal.pdf
