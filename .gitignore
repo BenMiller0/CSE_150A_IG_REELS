@@ -41,3 +41,9 @@
 *.pk
 *.synctex.gz.*
 _minted*/
+
+# Keep only final PDFs from the LaTeX build directory.
+/build/*
+!/build/*.pdf
+
+/.vscode/
