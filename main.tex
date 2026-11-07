@@ -11,6 +11,7 @@
 \usepackage{nicefrac}
 \usepackage{microtype}
 \usepackage{xcolor}
+\usepackage{tikz}
 
 \title{Instagram Reel Virality Probability}
 
@@ -96,12 +97,101 @@ conditional probability estimation and inference in our Bayesian network.
 \section{Modeling and Inference}
 
 \subsection{Model Structure and Assumptions}
-With said relevant features we will make a Bayesian Network using that subset of
+With said 7 most relevant features we will make a Bayesian Network using that subset of
 the 26 features.
 
-\textit{[TODO: Define the variables, dependency structure, assumptions, and
-parameters. Explain how the network represents the problem and how its conditional
-probability tables are estimated.]}
+\begin{figure}[t]
+  \centering
+  \begin{tikzpicture}[
+    feature/.style={
+      circle,
+      draw=gray!80,
+      line width=0.7pt,
+      minimum width=2.8cm,
+      minimum height=2.8cm,
+      text width=1.8cm,
+      align=center,
+      inner sep=2pt
+    },
+    target/.style={
+      circle,
+      draw=gray!80,
+      line width=0.8pt,
+      minimum width=2.4cm,
+      minimum height=2.4cm,
+      text width=1.6cm,
+      align=center,
+      inner sep=2pt
+    },
+    edge/.style={
+      ->,
+      black,
+      line width=0.9pt
+    }
+  ]
+    \node[feature] (hook) at (-3.5, 2.3)
+      {\texttt{strong\_}\\\texttt{hook}};
+    \node[feature] (hashtags) at (0, 3.8)
+      {\texttt{many\_}\\\texttt{hashtags}};
+    \node[feature] (followers) at (3.5, 2.3)
+      {\texttt{many\_}\\\texttt{followers}};
+    \node[feature] (audio) at (3.5, -2.3)
+      {\texttt{trending\_}\\\texttt{audio}};
+    \node[feature] (retention) at (0, -3.8)
+      {\texttt{high\_}\\\texttt{retention}};
+    \node[feature] (impressions) at (-3.5, -2.3)
+      {\texttt{many\_}\\\texttt{impressions}};
+
+    \node[target] (viral) at (0, 0)
+      {\texttt{bin\_}\\\texttt{viral}};
+
+    \draw[edge] (hook) -- (viral);
+    \draw[edge] (hashtags) -- (viral);
+    \draw[edge] (followers) -- (viral);
+    \draw[edge] (audio) -- (viral);
+    \draw[edge] (retention) -- (viral);
+    \draw[edge] (impressions) -- (viral);
+  \end{tikzpicture}
+  \caption{Bayesian network with binarized Reel features as predictors of the
+  binary virality target.}
+  \label{fig:bayesian-network}
+\end{figure}
+
+The network contains six binary predictor variables:
+\texttt{strong\_hook}, \texttt{many\_hashtags},
+\texttt{many\_impressions}, \texttt{many\_followers},
+\texttt{trending\_audio}, and \texttt{high\_retention}.
+The target variable is \texttt{bin\_viral}, which is 1 when
+\texttt{virality\_score} is at or above its 99.5th percentile and 0
+otherwise. The notebook binarizes each continuous predictor at its
+median; \texttt{trending\_audio} is encoded as 1 for true and 0 for
+false.
+
+As shown in Figure~\ref{fig:bayesian-network}, each predictor has a
+directed edge to \texttt{bin\_viral}, and there are no edges between
+predictors. Let $X_1,\ldots,X_6$ denote the predictor variables and let
+$Y$ denote \texttt{bin\_viral}. The joint distribution represented by
+this structure factorizes as
+\[
+P(X_1,\ldots,X_6,Y)
+=
+\left(\prod_{i=1}^{6} P(X_i)\right)
+P(Y\mid X_1,\ldots,X_6).
+\]
+Thus, the model estimates the probability of the binary virality outcome
+given the observed feature values. The structure assumes that the
+predictors are marginally independent; this is a simplifying assumption
+that may not hold for correlated features. The arrows describe the
+network's assumed dependencies and do not imply causal relationships.
+
+We will estimate each root variable's probability table from its
+observed category frequencies in the training data. The conditional
+probability table for \texttt{bin\_viral} would have $2^6=64$ rows, one for each
+combination of predictor values. For each row, the probability of each
+target value is estimated from the relative frequency of that value among
+training examples with the corresponding predictor combination. The
+notebook currently performs the binarization but does not yet estimate
+these probability tables.
 
 \subsection{Inference Algorithm}
 We intend to use approximate inference to estimate the probability that a Reel is
@@ -145,8 +235,7 @@ including the use of synthetic data, and propose extensions or improvements.]}
 individual reflection on the project.]}
 
 \paragraph{Ethan Fang}
-\textit{[TODO: Write 1--2 sentences describing your contributions and a brief
-individual reflection on the project.]}
+\textit{[Writing latex for the project report.]}
 
 \paragraph{Conner Satawidinata}
 \textit{[TODO: Write 1--2 sentences describing your contributions and a brief
