@@ -52,11 +52,13 @@ time, video length, virality score, and more.
 
 
 \subsection{Preprocessing}
-We found the data set was clean and not missing anything. Some of the features we found where not relevant in helping us answer our quiestion
-such as reel\_id and creator\_id.
+We found that the dataset contained no missing values. We excluded features that
+were not relevant to answering our question, such as reel\_id and creator\_id.
 
-We choose features based on what we intuitively thought would contribute to reel virality. We also found some features are redundent such as likes, comments,
-and shares all capture the same thing as the singular feature of virality score. This allowed us to narrow down the features we needed to answer our question.
+We chose features based on what we intuitively thought would contribute to Reel
+virality. We excluded likes, comments, and shares because they measure engagement
+outcomes that may overlap with the virality score. This allowed us to narrow down
+the features we needed to answer our question.
 
 The features we selected were: creator\_followers,
 hook\_strength\_score, hashtags\_count,
@@ -66,8 +68,11 @@ and virality\_score.
 We then converted the selected features into discrete binary variables to simplify
 the Bayesian Network's state space. For each numeric feature, we assigned a value
 of 1 when its value was at or above the chosen threshold and 0 otherwise. We used
-the 99.5th percentile of virality\_score to define what makes a video viral. For the other numeric features, we used their respective
-dataset medians (the 50th percentile).
+the 99.5th percentile of virality\_score to define a Reel as viral for this study.
+For the other numeric features, we used their respective dataset medians (the
+50th percentile). The trending\_audio feature was already Boolean, so we cast it
+directly to an integer, mapping true to 1 and false to 0. The table below shows
+all of the discrete binary variables we generated:
 
 \begin{center}
 \begin{tabular}{lll}
@@ -85,11 +90,8 @@ high\_retention & retention\_rate & Median ($\approx 0.501637$) \\
 \end{tabular}
 \end{center}
 
-The trending\_audio feature was already Boolean, so we cast it directly to an
-integer, mapping true to 1 and false to 0. These transformations provide a binary
-target and binary evidence variables for probabilistic inference. Because values
-equal to a threshold are included, ties can make the proportion of samples labeled
-1 exceed the nominal percentile fraction.
+These transformations reduce each variable to two possible states, simplifying
+conditional probability estimation and inference in our Bayesian network.
 
 \section{Modeling and Inference}
 
