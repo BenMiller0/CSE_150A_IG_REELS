@@ -12,6 +12,13 @@
 \usepackage{microtype}
 \usepackage{xcolor}
 \usepackage{tikz}
+\tikzset{
+  bnnode/.style={circle, draw=gray!80, line width=0.7pt, minimum size=2.4cm,
+    text width=2.1cm, align=center, inner sep=1pt, font=\small},
+  bntarget/.style={bnnode, line width=0.9pt},
+  bnlatent/.style={bnnode, dashed, fill=gray!15},
+  bnedge/.style={->, black, line width=0.9pt}
+}
 \usepackage{float}
 \usepackage{courier}
 
@@ -99,7 +106,12 @@ conditional probability estimation and inference in our Bayesian network.
 \section{Modeling and Inference}
 
 \subsection{Model Structure and Assumptions}
-With said 7 most relevant features we will make a Bayesian Network.
+
+\subsubsection{Model 1: Baseline}
+Using the 7 selected features, we first build a baseline Bayesian network.
+In this baseline, every predictor influences virality directly and the
+predictors do not influence each other. Later models relax this assumption
+while keeping \texttt{bin\_viral} as the outcome, so it never has outgoing edges.
 
 \begin{figure}[H]
   \centering
@@ -153,8 +165,8 @@ With said 7 most relevant features we will make a Bayesian Network.
     \draw[edge] (retention) -- (viral);
     \draw[edge] (impressions) -- (viral);
   \end{tikzpicture}
-  \caption{Bayesian network with binarized Reel features as predictors of the
-  binary virality target.}
+  \caption{Baseline Bayesian network with binarized Reel features as direct
+  predictors of the binary virality target.}
   \label{fig:bayesian-network}
 \end{figure}
 
@@ -181,8 +193,8 @@ P(Y\mid X_1,\ldots,X_6).
 \]
 Thus, the model estimates the probability of the binary virality outcome
 given the observed feature values. The structure assumes that the
-predictors are marginally independent; this is a simplifying assumption
-that may not hold for correlated features. The arrows describe the
+predictors are marginally independent; this is the baseline's main
+simplifying assumption, and it may not hold for correlated features. The arrows describe the
 network's assumed dependencies and do not imply causal relationships.
 
 We will estimate each root variable's probability table from its
@@ -193,6 +205,163 @@ target value is estimated from the relative frequency of that value among
 training examples with the corresponding predictor combination. The
 notebook currently performs the binarization but does not yet estimate
 these probability tables.
+
+\subsubsection{Model 2: Feature-Dependency Model}
+The second model keeps every direct edge into \texttt{bin\_viral} from the
+baseline, but adds edges between predictors where one feature plausibly
+affects another. A larger follower base, trending audio, and more hashtags
+can each increase how many people see a Reel, so \texttt{many\_followers},
+\texttt{trending\_audio}, and \texttt{many\_hashtags} point to
+\texttt{many\_impressions}. A strong hook keeps viewers watching, so
+\texttt{strong\_hook} points to \texttt{high\_retention}.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[bnnode] (hashtags)    at (-4.5, 3)  {\texttt{many\_}\\\texttt{hashtags}};
+    \node[bnnode] (followers)   at (-1.5, 3)  {\texttt{many\_}\\\texttt{followers}};
+    \node[bnnode] (audio)       at ( 1.5, 3)  {\texttt{trending\_}\\\texttt{audio}};
+    \node[bnnode] (hook)        at ( 4.5, 3)  {\texttt{strong\_}\\\texttt{hook}};
+    \node[bnnode] (impressions) at (-4.5, 0)  {\texttt{many\_}\\\texttt{impressions}};
+    \node[bnnode] (retention)   at ( 4.5, 0)  {\texttt{high\_}\\\texttt{retention}};
+    \node[bntarget] (viral)     at ( 0, -3)   {\texttt{bin\_}\\\texttt{viral}};
+
+    \draw[bnedge] (hashtags)  -- (impressions);
+    \draw[bnedge] (followers) -- (impressions);
+    \draw[bnedge] (audio)     -- (impressions);
+    \draw[bnedge] (hook)      -- (retention);
+
+    \draw[bnedge] (hashtags)    -- (viral);
+    \draw[bnedge] (followers)   -- (viral);
+    \draw[bnedge] (audio)       -- (viral);
+    \draw[bnedge] (hook)        -- (viral);
+    \draw[bnedge] (impressions) -- (viral);
+    \draw[bnedge] (retention)   -- (viral);
+  \end{tikzpicture}
+  \caption{Model 2: the baseline with added dependencies between predictors.}
+  \label{fig:model-dependency}
+\end{figure}
+
+For readability, let $H$, $T$, $F$, $A$, $R$, $I$, and $Y$ denote
+\texttt{strong\_hook}, \texttt{many\_hashtags}, \texttt{many\_followers},
+\texttt{trending\_audio}, \texttt{high\_retention},
+\texttt{many\_impressions}, and \texttt{bin\_viral}. Model 2 factorizes as
+\[
+P(H)\,P(T)\,P(F)\,P(A)\,P(I \mid T, F, A)\,P(R \mid H)\,
+P(Y \mid H, T, F, A, R, I).
+\]
+The table for \texttt{bin\_viral} still has $2^6 = 64$ rows, but the
+predictors are no longer assumed to be independent of each other. Comparing
+this model with the baseline tests whether that assumption matters.
+
+\subsubsection{Model 3: Two-Stage Funnel Model}
+The third model treats virality as the end of a funnel. Creator and content
+features first determine intermediate outcomes, and only those intermediate
+outcomes point to \texttt{bin\_viral}. As in Model 2,
+\texttt{many\_hashtags}, \texttt{many\_followers}, and
+\texttt{trending\_audio} point to \texttt{many\_impressions}, and
+\texttt{strong\_hook} points to \texttt{high\_retention}.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[bnnode] (hashtags)    at (-3, 3)  {\texttt{many\_}\\\texttt{hashtags}};
+    \node[bnnode] (followers)   at ( 0, 3)  {\texttt{many\_}\\\texttt{followers}};
+    \node[bnnode] (audio)       at ( 3, 3)  {\texttt{trending\_}\\\texttt{audio}};
+    \node[bnnode] (hook)        at ( 6, 3)  {\texttt{strong\_}\\\texttt{hook}};
+    \node[bnnode] (impressions) at ( 0, 0)  {\texttt{many\_}\\\texttt{impressions}};
+    \node[bnnode] (retention)   at ( 6, 0)  {\texttt{high\_}\\\texttt{retention}};
+    \node[bntarget] (viral)     at ( 3, -3) {\texttt{bin\_}\\\texttt{viral}};
+
+    \draw[bnedge] (hashtags)    -- (impressions);
+    \draw[bnedge] (followers)   -- (impressions);
+    \draw[bnedge] (audio)       -- (impressions);
+    \draw[bnedge] (hook)        -- (retention);
+    \draw[bnedge] (impressions) -- (viral);
+    \draw[bnedge] (retention)   -- (viral);
+  \end{tikzpicture}
+  \caption{Model 3: creator and content features influence virality only
+  through impressions and retention.}
+  \label{fig:model-funnel}
+\end{figure}
+
+Model 3 factorizes as
+\[
+P(H)\,P(T)\,P(F)\,P(A)\,P(I \mid T, F, A)\,P(R \mid H)\,P(Y \mid I, R).
+\]
+The table for \texttt{bin\_viral} shrinks from 64 rows to 4, so each row is
+estimated from far more training examples. The model also assumes that once
+impressions and retention are known, the remaining features give no further
+information about virality.
+
+\subsubsection{Model 4: Creator-Controlled Model}
+The fourth model keeps only the features a creator chooses when posting a
+Reel: \texttt{strong\_hook}, \texttt{many\_hashtags}, and
+\texttt{trending\_audio}. Follower count, impressions, and retention are
+excluded because they depend on the audience or on how the Reel performs
+after posting. This model answers a practical question: which choices a
+creator makes are associated with a higher chance of going viral.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[bnnode] (hook)     at (-3, 2.5) {\texttt{strong\_}\\\texttt{hook}};
+    \node[bnnode] (hashtags) at ( 0, 2.5) {\texttt{many\_}\\\texttt{hashtags}};
+    \node[bnnode] (audio)    at ( 3, 2.5) {\texttt{trending\_}\\\texttt{audio}};
+    \node[bntarget] (viral)  at ( 0, -0.5) {\texttt{bin\_}\\\texttt{viral}};
+
+    \draw[bnedge] (hook)     -- (viral);
+    \draw[bnedge] (hashtags) -- (viral);
+    \draw[bnedge] (audio)    -- (viral);
+  \end{tikzpicture}
+  \caption{Model 4: only creator-controlled features predict virality.}
+  \label{fig:model-creator}
+\end{figure}
+
+Model 4 factorizes as
+\[
+P(H)\,P(T)\,P(A)\,P(Y \mid H, T, A),
+\]
+and the table for \texttt{bin\_viral} has $2^3 = 8$ rows.
+
+\subsubsection{Model 5: Latent Appeal Model}
+The fifth model adds a hidden binary variable \texttt{appeal}, denoted $Z$,
+that represents how engaging a Reel is overall. Appeal is never observed in
+the data. The creator-controlled features point to \texttt{appeal}, and
+\texttt{appeal} points to both \texttt{high\_retention} and
+\texttt{bin\_viral}. Retention is included as a second child of
+\texttt{appeal} because it is observed and gives the model more information
+for estimating the hidden variable.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[bnnode] (hook)      at (-3, 3)  {\texttt{strong\_}\\\texttt{hook}};
+    \node[bnnode] (hashtags)  at ( 0, 3)  {\texttt{many\_}\\\texttt{hashtags}};
+    \node[bnnode] (audio)     at ( 3, 3)  {\texttt{trending\_}\\\texttt{audio}};
+    \node[bnlatent] (appeal)  at ( 0, 0)  {\texttt{appeal}};
+    \node[bnnode] (retention) at (-2.5, -3) {\texttt{high\_}\\\texttt{retention}};
+    \node[bntarget] (viral)   at ( 2.5, -3) {\texttt{bin\_}\\\texttt{viral}};
+
+    \draw[bnedge] (hook)     -- (appeal);
+    \draw[bnedge] (hashtags) -- (appeal);
+    \draw[bnedge] (audio)    -- (appeal);
+    \draw[bnedge] (appeal)   -- (retention);
+    \draw[bnedge] (appeal)   -- (viral);
+  \end{tikzpicture}
+  \caption{Model 5: a hidden appeal variable (dashed) links creator choices
+  to retention and virality.}
+  \label{fig:model-latent}
+\end{figure}
+
+Model 5 factorizes as
+\[
+P(H)\,P(T)\,P(A)\,P(Z \mid H, T, A)\,P(R \mid Z)\,P(Y \mid Z).
+\]
+Because $Z$ is never observed, its probability tables cannot be estimated by
+counting. Instead, they are learned with the Expectation-Maximization (EM)
+algorithm, which alternates between inferring $Z$ for each Reel and
+re-estimating the tables until the log-likelihood converges.
 
 \subsection{Inference Algorithm}
 We intend to use approximate inference to estimate the probability that a Reel is
