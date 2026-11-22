@@ -4,13 +4,13 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{hyperref}
 \usepackage{url}
 \usepackage{booktabs}
 \usepackage{amsfonts}
 \usepackage{nicefrac}
 \usepackage{microtype}
 \usepackage{xcolor}
+\usepackage{graphicx}
 \usepackage{tikz}
 \tikzset{
   bnnode/.style={circle, draw=gray!80, line width=0.7pt, minimum size=2.4cm,
@@ -21,6 +21,7 @@
 }
 \usepackage{float}
 \usepackage{courier}
+\usepackage[hidelinks]{hyperref}
 
 \title{Instagram Reel Virality Probability}
 
@@ -373,7 +374,7 @@ difference measured directly in the data, along with its 95\% confidence
 interval. For Model 4, we query three scenarios: a strong hook with trending
 audio and hashtags unobserved; all three creator-controlled features on; and
 all three off. We compare each against the observed viral rate in the data
-with a 95\% Wilson confidence interval.
+with a 95\% confidence interval.
 
 \section{Results and Discussion}
 
@@ -381,6 +382,11 @@ with a 95\% Wilson confidence interval.
 \textit{[TODO: Compare multiple configurations, such as inference settings,
 feature subsets, discretization thresholds, or network structures. Describe the
 evaluation procedure and explain observed performance differences.]}
+
+We found that across all four standard models without a hidden variable all performed the 
+same which was around 0.5\% which is the about the same as the prior probability. Where we
+saw actual diviation was in the fifth model with the hidden appeal variable which saw
+0.0088 probability of varility given the appeal was one. 
 
 \subsection{Quantitative Results}
 \textit{[TODO: Report measured results with suitable metrics, tables, or figures.
@@ -391,18 +397,72 @@ Explain the metrics and compare performance across configurations.]}
 features changes virality probabilities, and whether learned conditional
 probability tables align with intuition.]}
 
-\subsection{Convergence and Scalability}
-\textit{[TODO: Discuss training or inference stability, convergence, runtime,
-and computational cost as the dataset or network grows.]}
+The models show that there is some hidden appeal that leads to Instagram Reels going
+viral. The different variables we used showed very little impact on the virality score besides
+the hidden appeal variable.
 
+This shows that it is extremely hard to qaunitify what makes an Instagram Reel go viral through numerical
+metrics and there is some very hard to model qaulity about viral videos we where not able to directly
+model here. This could be things such as videos that chase viral trends, different video topics,
+or another qaulity that we did not model.
+
+% Keep the convergence/scalability discussion and both plots together.
+\clearpage
+\subsection{Convergence and Scalability}
+To test convergence, we ran likelihood weighting and rejection sampling on
+Model 1 with 100, 1,000, 10,000, and 100,000 samples, repeating each sample
+size 10 times. As shown in Figure~\ref{fig:estimate-convergence}, the estimates
+approach the exact inference result as the sample size increases.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{images/estimateconvergence.png}
+    \caption{Convergence of virality probability estimates across sample sizes.
+    Error bars show one standard deviation over 10 runs; the dashed line marks
+    the exact inference result.}
+    \label{fig:estimate-convergence}
+\end{figure}
+
+Figure~\ref{fig:runtime-samples} shows how runtime grows with the number of
+samples. At larger sample sizes, a tenfold increase in samples produces
+roughly a tenfold increase in runtime, consistent with $O(N)$ scaling for
+these experiments.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{images/runtimesamples.png}
+    \caption{Average runtime of likelihood weighting and rejection sampling
+    across sample sizes.}
+    \label{fig:runtime-samples}
+\end{figure}
+
+
+\clearpage
 \section{Conclusion}
 \textit{[TODO: Summarize key findings and model performance. Discuss limitations,
 including the use of synthetic data, and propose extensions or improvements.]}
 
+We found that there seems to be a hidden appeal variable that leads Instagram Reels to go
+viral. Of all the models without the hidden appeal variable, we found none of the variables such
+as high retention, hastags, trending audio, or strong hook had any significant effect on virality.
+
+A limitation of this project was the lack of data points. One-hundred thousand is not a lot in
+comparision to the likely billions of Instagram Reels that actually exisit. This was made worse by
+the fact that we treated the top 0.05 percent of reels as viral meaning we only had a sample of 500
+viral reels. Another limitation is that the data set is synthetic and only based on real data.  
+
+A extension that we believe would improve and extend apon our work in this project is a data pipeline
+that gathers real data from sampling Instagram via webscraping and using that to build the models. Based 
+on that data we could propose new more acurate models to better find out what makes Instagram Reels go viral.
+
 \section{Reflections \& Contributions}
 
 \subsection{Advice for Future Students}
-\textit{[TODO: Share practical suggestions and lessons learned from the project.]}
+Our biggest peice of advice would be to run EDA (exploratory data analysis) to better learn your data before you start
+building models and running infernce. This will make you better undstand the data and will lead to better models.
+
+Also making sure you start early and start often is always good for build
+programming and math heavy projects like this one.
 
 \subsection{Individual Contributions and Reflections}
 \paragraph{Iban Rosales}
@@ -410,14 +470,16 @@ including the use of synthetic data, and propose extensions or improvements.]}
 individual reflection on the project.]}
 
 \paragraph{Ethan Fang}
-\textit{[Writing latex for the project report.]}
+\textit{Wrote all of section 3 and some of section 2.}
 
 \paragraph{Conner Satawidinata}
 \textit{[TODO: Write 1--2 sentences describing your contributions and a brief
 individual reflection on the project.]}
 
 \paragraph{Benjamin Miller}
-    \textit{Wrote a lot of the project writeup and assisted with overall project ideas. }
+    \textit{Wrote all of section 4 and 5 and some of section 2.}
+    I personally learned how to translate the very math and theory heavy concepts we learned
+    in class to something tangible. I also learned how to translate complicated code into a write-up.
 
 \subsection{Use of Generative AI}
 Gen AI was used to assist in the generation of Python and Latex code in order to translate
