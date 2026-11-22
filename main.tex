@@ -168,30 +168,12 @@ while keeping \texttt{bin\_viral} as the outcome, so it never has outgoing edges
   \label{fig:bayesian-network}
 \end{figure}
 
-For readability, let $H$, $T$, $F$, $A$, $R$, $I$, and $Y$ denote
-\texttt{strong\_hook}, \texttt{many\_hashtags}, \texttt{many\_followers},
-\texttt{trending\_audio}, \texttt{high\_retention},
-\texttt{many\_impressions}, and \texttt{bin\_viral}; we use this notation for
-all models. As shown in Figure~\ref{fig:bayesian-network}, each predictor has
-a directed edge to \texttt{bin\_viral}, and there are no edges between
-predictors. The joint distribution represented by this structure factorizes as
-\[
-P(H, T, F, A, R, I, Y)
-=
-P(H)\,P(T)\,P(F)\,P(A)\,P(R)\,P(I)\,P(Y \mid H, T, F, A, R, I).
-\]
-The model therefore lets us compute the probability that a Reel is viral given
-its observed features. The structure assumes that the predictors are
-marginally independent; this is the baseline's main simplifying assumption,
-and it may not hold for correlated features. The arrows describe the network's
-assumed dependencies and do not imply causal relationships.
-
-We estimate every probability table by maximum likelihood, using relative
-frequencies over the full dataset of 100,000 Reels. Each root variable's table
-is the observed frequency of each of its values. The table for
-\texttt{bin\_viral} has $2^6 = 64$ rows, one for each combination of predictor
-values, and each row's probability of virality is the fraction of Reels with
-that combination that are viral. Models 2--4 are fit the same way.
+The baseline estimates virality from all six observed features and serves as
+a reference for the other structures. It assumes the predictors are
+independent of one another, a simplifying assumption that may not hold for
+correlated features. For Models 1--4, we estimate probabilities from observed
+frequencies in the dataset. The arrows express hypothesized dependencies, not
+proven causal relationships.
 
 \subsubsection{Model 2: Feature-Dependency Model}
 The second model keeps every direct edge into \texttt{bin\_viral} from the
@@ -229,14 +211,8 @@ can each increase how many people see a Reel, so \texttt{many\_followers},
   \label{fig:model-dependency}
 \end{figure}
 
-Model 2 factorizes as
-\[
-P(H)\,P(T)\,P(F)\,P(A)\,P(I \mid T, F, A)\,P(R \mid H)\,
-P(Y \mid H, T, F, A, R, I).
-\]
-The table for \texttt{bin\_viral} still has $2^6 = 64$ rows, but the
-predictors are no longer assumed to be independent of each other. Comparing
-this model with the baseline tests whether that assumption matters.
+This model tests whether representing plausible dependencies between features
+better captures the data than the independent-predictor baseline.
 
 \subsubsection{Model 3: Two-Stage Funnel Model}
 The third model treats virality as the end of a funnel. Creator and content
@@ -269,14 +245,9 @@ outcomes point to \texttt{bin\_viral}. As in Model 2,
   \label{fig:model-funnel}
 \end{figure}
 
-Model 3 factorizes as
-\[
-P(H)\,P(T)\,P(F)\,P(A)\,P(I \mid T, F, A)\,P(R \mid H)\,P(Y \mid I, R).
-\]
-The table for \texttt{bin\_viral} shrinks from 64 rows to 4, so each row is
-estimated from far more examples. The model also assumes that once
-impressions and retention are known, the remaining features give no further
-information about virality.
+This model assumes that impressions and retention summarize the relationship
+between the other features and virality; given these two outcomes, the other
+features provide no additional information about the target.
 
 \subsubsection{Model 4: Creator-Controlled Model}
 The fourth model keeps only the features a creator chooses when posting a
@@ -302,11 +273,8 @@ creator makes are associated with a higher chance of going viral.
   \label{fig:model-creator}
 \end{figure}
 
-Model 4 factorizes as
-\[
-P(H)\,P(T)\,P(A)\,P(Y \mid H, T, A),
-\]
-and the table for \texttt{bin\_viral} has $2^3 = 8$ rows.
+This structure focuses on features available to a creator when preparing a
+Reel, before its audience response is known.
 
 \subsubsection{Model 5: Latent Appeal Model}
 The fifth model adds a hidden binary variable \texttt{appeal}, denoted $Z$,
@@ -338,43 +306,18 @@ for estimating the hidden variable.
   \label{fig:model-latent}
 \end{figure}
 
-Model 5 factorizes as
-\[
-P(H)\,P(T)\,P(A)\,P(Z \mid H, T, A)\,P(R \mid Z)\,P(Y \mid Z).
-\]
-Because $Z$ is never observed, its probability tables cannot be estimated by
-counting. Instead, they will be learned with the Expectation-Maximization (EM)
-algorithm, which alternates between inferring $Z$ for each Reel and
-re-estimating the tables until the log-likelihood converges.
+Because appeal is unobserved, we estimate Model 5's parameters with
+expectation-maximization (EM), which alternates between inferring the hidden
+appeal values and updating the model parameters.
 
 \subsection{Inference Algorithm}
-In every experiment, the query variable is \texttt{bin\_viral} and the evidence
-is a set of observed predictor values. We compute
-$P(\texttt{bin\_viral} = 1 \mid \mathrm{evidence})$ in three ways, all with the
-\texttt{pgmpy} library:
-\begin{itemize}
-  \item \textbf{Exact inference (variable elimination).} Unobserved variables
-  are summed out one at a time. Each network has at most seven binary
-  variables, so exact inference is fast and serves as the reference answer.
-  \item \textbf{Likelihood weighting.} Variables are sampled in topological
-  order, evidence variables are fixed to their observed values, and each
-  sample is weighted by the probability of the evidence given its parents. We
-  draw 100,000 weighted samples.
-  \item \textbf{Rejection sampling.} Samples are drawn from the full joint
-  distribution, and only those that match the evidence are kept, until
-  100,000 matching samples are collected.
-\end{itemize}
-Likelihood weighting and rejection sampling use a fixed random seed of 0. As a further check, we also run
-\texttt{pgmpy}'s built-in \texttt{ApproxInference} with 100,000 samples.
-
-For Models 1--3, we query a Reel with a strong hook, many followers, and high
-retention ($H = 1$, $F = 1$, $R = 1$). We also observe each predictor on its own at 0 and
-at 1 and compare the resulting change in virality probability with the
-difference measured directly in the data, along with its 95\% confidence
-interval. For Model 4, we query three scenarios: a strong hook with trending
-audio and hashtags unobserved; all three creator-controlled features on; and
-all three off. We compare each against the observed viral rate in the data
-with a 95\% confidence interval.
+For each model, we query $P(\texttt{bin\_viral}=1)$ given observed feature
+values. Using \texttt{pgmpy}, we compare exact variable elimination with
+likelihood weighting and rejection sampling. The sampling methods use
+100,000 samples and random seed 0; we also check \texttt{ApproxInference}
+with 100,000 samples. We evaluate representative feature combinations and
+compare model estimates with observed viral rates and their confidence
+intervals.
 
 \section{Results and Discussion}
 
