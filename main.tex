@@ -183,8 +183,10 @@ while keeping \texttt{bin\_viral} as the outcome, so it never has outgoing edges
 
 The baseline estimates virality from all six observed features and serves as
 a reference for the other structures. It assumes the predictors are
-independent of one another, a simplifying assumption that may not hold for
-correlated features. For Models 1--4, we estimate probabilities from observed
+marginally independent, a simplifying assumption that may not hold for
+correlated features; since all six point into \texttt{bin\_viral}, they
+become dependent once virality is observed. For Models 1--4, we learn the
+CPTs by maximum likelihood estimation (MLE), i.e., unsmoothed observed
 frequencies in the dataset. The arrows express hypothesized dependencies, not
 proven causal relationships.
 
@@ -321,7 +323,10 @@ for estimating the hidden variable.
 
 Because appeal is unobserved, we estimate Model 5's parameters with
 expectation-maximization (EM), which alternates between inferring the hidden
-appeal values and updating the model parameters.
+appeal values and updating the model parameters. Because $Z$ is never
+observed, its two states are interchangeable; we label as \texttt{appeal}$=1$
+the state with the higher learned probability of virality. We ran EM from 10
+random initializations and kept the fit with the highest log-likelihood.
 
 \subsection{Inference Algorithm}
 For each model, we query $P(\texttt{bin\_viral}=1)$ given observed feature
