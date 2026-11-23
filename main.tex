@@ -17,11 +17,11 @@
 \usepackage{tikz}
 \tikzset{
   bnnode/.style={circle, draw=gray!80, line width=0.7pt, minimum size=2.4cm,
-    text width=2.1cm, align=center, inner sep=1pt, font=\small},
+    text width=2.4cm, align=center, inner sep=1pt, font=\normalsize},
   bntarget/.style={bnnode, line width=0.9pt},
   bnlatent/.style={bnnode, dashed, fill=gray!15},
   bnedge/.style={->, black, line width=0.9pt},
-  bncompact/.style={scale=0.75, transform shape}
+  bncompact/.style={scale=0.65, transform shape}
 }
 \usepackage{float}
 \usepackage{courier}
@@ -42,6 +42,7 @@
 
 \begin{document}
 \raggedbottom
+\setlength{\intextsep}{6pt}
 
 \maketitle
 
@@ -52,11 +53,10 @@
   most influential drivers of culture. In the past decade, vertical short-form video
   platforms, such as Instagram Reels, have become one of the most popular ways of
   consuming social media content. Being able to go viral on social media is by extension
-  the ability to shape culture. This is why it is important to determine which
-  characteristics of an Instagram Reel are most associated with virality, and how does
-  observing these characteristics change the probability that a Reel is viral? This is
-  important because it shapes generations' culture and shows what is valued in our
-  society.
+  the ability to shape culture. We therefore ask: which characteristics of an Instagram Reel 
+  are most associated with virality, and how does observing these characteristics change the 
+  probability that a Reel is viral? We address this question using Bayesian networks to model 
+  dependencies among Reel characteristics and estimate virality probabilities given observed evidence.
 
 \section{Data Sourcing and Processing}
 
@@ -74,7 +74,9 @@ were not relevant to answering our question, such as reel\_id and creator\_id.
 
 We selected features we expected to influence Reel virality. We excluded likes,
 comments, and shares because they measure engagement outcomes that may overlap
-with the virality score.
+with the virality score. We retain impressions and retention as post-publication
+evidence about reach and viewing behavior; Model~4 separately considers only
+creator-controlled features.
 
 {\raggedright
 We kept six predictors (\texttt{creator\_followers},
@@ -87,8 +89,9 @@ We then converted each selected feature into a binary variable to keep the
 Bayesian network's state space small and simplify probability estimation and
 inference. Each numeric feature was set to 1 if it was at or above its threshold
 and 0 otherwise. A Reel is labeled viral if its \texttt{virality\_score} is at or
-above the 99.5th percentile (the top 0.5\%). For the other numeric features, we
-used each feature's median as the threshold. The \texttt{trending\_audio}
+above the 99.5th percentile (the top 0.5\%). This definition treats virality as a
+rare event, yielding 500 viral Reels and 99,500 nonviral Reels. For the other
+numeric features, we used each feature's median as the threshold. The \texttt{trending\_audio}
 feature was already Boolean, so we cast it directly to an integer, mapping true
 to 1 and false to 0. The table below lists the resulting binary variables:
 
@@ -129,10 +132,10 @@ while keeping \texttt{bin\_viral} as the outcome, so it never has outgoing edges
       line width=0.7pt,
       minimum width=2.8cm,
       minimum height=2.8cm,
-      text width=2.1cm,
+      text width=2.4cm,
       align=center,
       inner sep=2pt,
-      font=\small
+      font=\normalsize
     },
     target/.style={
       circle,
@@ -256,7 +259,7 @@ outcomes point to \texttt{bin\_viral}. As in Model 2,
 \end{figure}
 
 This model assumes that impressions and retention summarize the relationship
-between the other features and virality; given these two outcomes, the other
+between the other features and virality. Given these two outcomes, the other
 features provide no additional information about the target.
 
 \subsubsection{Model 4: Creator-Controlled Model}
@@ -332,29 +335,46 @@ intervals.
 \section{Results and Discussion}
 
 \subsection{Experimental Configurations}
-\textit{[TODO: Compare multiple configurations, such as inference settings,
-feature subsets, discretization thresholds, or network structures. Describe the
-evaluation procedure and explain observed performance differences.]}
 
-We found that across all four standard models without a hidden variable all performed the 
-same which was around 0.5\% which is the about the same as the prior probability. Where we
-saw actual diviation was in the fifth model with the hidden appeal variable which saw
-0.0088 probability of varility given the appeal was one. 
+All four models without a hidden variable gave estimates close to the prior
+probability of 0.5\%. In Model 5, the probability of virality was about 0.88\%
+given \texttt{appeal}$=1$.
 
 \subsection{Quantitative Results}
-\textit{[TODO: Report measured results with suitable metrics, tables, or figures.
-Explain the metrics and compare performance across configurations.]}
+Figure~\ref{fig:exact-inference} shows how the five models' exact virality
+estimates change with the features we observe. With no evidence, every model
+gives about 0.5\%, the overall viral rate in the dataset. The estimates barely
+change when we observe a strong hook and trending audio.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{images/exactInfernce.png}
+    \caption{Exact virality probabilities across five models. $H$, $T$, and $A$
+    denote a strong hook, many hashtags, and trending audio, respectively.
+    The dashed line marks the dataset's overall viral rate.}
+    \label{fig:exact-inference}
+\end{figure}
+
+When all three creator-controlled features are present, Models 1, 2, 4, and 5
+give about 0.44\%, while Model 3 gives 0.50\%. When all three are absent, the
+rates are about 0.39\% for Models 1, 2, and 4 and 0.42\% for Model 5.
+Model 3 stays near 0.50\% in both cases.
+
+Model 5 gave a viral probability of about 0.88\% for \texttt{appeal}$=1$ and 0.09\%
+for \texttt{appeal}$=0$. This is a much bigger difference than we saw from the
+observed features. These appeal states were learned by the model.
 
 \subsection{Qualitative Insights}
 
-The models show that there is some hidden appeal that leads to Instagram Reels going
-viral. The different variables we used showed very little impact on the virality score besides
-the hidden appeal variable.
+The features we tested showed very little association with virality in this
+dataset. Model 5 learned two appeal states with different viral probabilities,
+but this does not show that we have found a real hidden quality that makes
+Reels go viral.
 
-This shows that it is extremely hard to qaunitify what makes an Instagram Reel go viral through numerical
-metrics and there is some very hard to model qaulity about viral videos we where not able to directly
-model here. This could be things such as videos that chase viral trends, different video topics,
-or another qaulity that we did not model.
+Because the data is synthetic, the weak relationships may come from how the
+dataset was created. Turning the features into binary variables may also have
+hidden some relationships. We would need real Reel data to see whether the
+same findings hold on Instagram.
 
 \subsection{Convergence and Scalability}
 To test convergence, we ran likelihood weighting and rejection sampling on
@@ -365,7 +385,7 @@ approach the exact inference result as the sample size increases.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.48\linewidth]{images/estimateconvergence.png}
-    \caption{Virality estimates over 10 runs; error bars show one standard deviation.}
+    \caption{Virality estimates over 10 runs. Error bars show one standard deviation.}
     \label{fig:estimate-convergence}
 \end{figure}
 
@@ -383,7 +403,7 @@ these experiments.
 \end{figure}
 
 We also found that scaling up the number of evidence variables only impacts the runtime
-of rejection sampling significantly as shown in figure 8.
+of rejection sampling significantly as shown in Figure~\ref{fig:runtime-variables}.
 
 \begin{figure}[H]
     \centering
@@ -394,48 +414,51 @@ of rejection sampling significantly as shown in figure 8.
 
 \section{Conclusion}
 
-We found that there seems to be a hidden appeal variable that leads Instagram Reels to go
-viral. Of all the models without the hidden appeal variable, we found none of the variables such
-as high retention, hastags, trending audio, or strong hook had any significant effect on virality.
+We found that features like retention, hashtag count, trending audio, and hook
+strength did little to change the estimated chance of a Reel going viral.
+Model 5 learned two appeal states with different viral probabilities which could
+suggest a hidden appeal factor that is not captured in any of the variables we used.
+This could be things such as viral trends and other factors not captured in our models.
 
-A limitation of this project was the lack of data points. One-hundred thousand is not a lot in
-comparision to the likely billions of Instagram Reels that actually exisit. This was made worse by
-the fact that we treated the top 0.05 percent of reels as viral meaning we only had a sample of 500
-viral reels. Another limitation is that the data set is synthetic and only based on real data.  
+One limitation is that we only had 500 viral examples to work with, since we labeled the top
+0.5\% of 100,000 Reels as viral. Some combinations of features therefore had
+very few viral examples. The dataset is also synthetic, so the results may
+not perfectly translate to real Instagram Reel data.
 
-A extension that we believe would improve and extend apon our work in this project is a data pipeline
-that gathers real data from sampling Instagram via webscraping and using that to build the models. Based 
-on that data we could propose new more acurate models to better find out what makes Instagram Reels go viral.
+A useful next step would be to build a pipeline that collects real Reel data
+through web scraping. We could then test our models on that data and try new
+ones to better understand which features are linked to virality.
 
 \section{Reflections \& Contributions}
 
 \subsection{Advice for Future Students}
-Our biggest peice of advice would be to run EDA (exploratory data analysis) to better learn your data before you start
-building models and running infernce. This will make you better undstand the data and will lead to better models. Also, making sure you start early and start often is always good for build
-programming and math heavy projects like this one.
+Our biggest piece of advice would be to run EDA (exploratory data analysis)
+before you start building models and running inference. This helps you
+understand your data and choose better models. Starting early and working
+regularly also helps with projects that involve a lot of programming and math.
 
 \subsection{Individual Contributions and Reflections}
 \paragraph{Iban Rosales}
-\textit{Helped brainstorm how to get the project started, worked on the coding section (especially the convergence and scalability experiments), and helped add ideas to the writeup.}
+\textit{Helped brainstorm how to get the project started, worked on the coding section (especially the convergence and scalability experiments), and helped add ideas to the writeup.}\par
 It was nice seeing concepts I learned in class applied in practice. It was also unexpected how the 100k synthetic dataset we used had basically no correlation, which taught me to check distributions and correlations early on, and showed that even with such a noisy dataset, we can still do interesting probabilistic analysis on it.
 
 \paragraph{Ethan Fang}
-\textit{Wrote all of section 3 and some of section 2.}\\\\
+\textit{Wrote all of section 3 and some of section 2. Contributed to project ideas and brainstorming.}\par
 This project helped me understand how different Bayesian network structures can produce similar predictions when synthetic data is used.
 
 \paragraph{Conner Satawidinata}
-\textit{Worked with Iban to load, preprocess, and explore the dataset. Read into the pgmpy toolkit to help code the exact and approximate inference algorithms for the models.}\\\\
+\textit{Worked with Iban to load, preprocess, and explore the dataset. Read into the pgmpy toolkit to help code the exact and approximate inference algorithms for the models.}\par
 This project deepened my appreciation for deciding how to choose appropriate probabilistic models while also helping me understand that bad or insufficient data can hinder the achievement of significant results even if inference is done correctly.
 
 \paragraph{Benjamin Miller}
-    \textit{Wrote all of sections 4 and 5 and some of section 2.}\\\\
+    \textit{Wrote all of sections 4 and 5 and some of section 2. Contributed to project ideas and brainstorming.}\par
     I personally learned how to translate the very math and theory heavy concepts we learned
     in class to something tangible. I also learned how to translate complicated code into a write-up.
 
 \subsection{Use of Generative AI}
-Generative AI was used to assist in the generation of Python and Latex code in order to translate
-our ideas into code. All ideas where discuessed and choosen by humans, and we used AI to assit us
-in implementation detials. We manaully reviewed all code and outputs to verify it matched our intent.
+We used generative AI to help with Python and \LaTeX{} code, proofreading, and
+wording. Our group chose the project ideas and modeling approach. We manually
+reviewed the code, outputs, and final write-up.
 
 \renewcommand{\bibsection}{\section{References}}
 \begin{thebibliography}{9}
